@@ -25,7 +25,6 @@ const themes = {
 };
 
 async function init() {
-
   const config = loadConfig();
   applyTheme(config.theme)
 
@@ -36,7 +35,6 @@ async function init() {
 
 async function updateDisplay() {
   const info = await fetchNextBus();
-  console.log(info);
   if (info.is_bus_coming){ 
   document.getElementById('bus-info').innerHTML =`
     <div class="route">🚌 ${info.route}</div>
@@ -58,7 +56,7 @@ function applyTheme(themeName){
   style.textContent = `
     .route { color: ${theme.route}; font-weight: bold; }
     .stop  { color: ${theme.stop}; }
-    .time  { color: ${theme.time}; font-weight: bold; font-size: 1.3em; }
+    .time  { color: ${theme.time}; font-weight: bold;}
   `;
   document.head.appendChild(style);
 }
