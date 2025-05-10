@@ -8,7 +8,7 @@ function loadConfig() {
     console.log("load config")
     return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
   } else {
-    return { apiKey: '', routeId: '', stopId: '', theme: 'neon'};
+    return { apiKey: '', routeId: '', stopId: '', theme: 'neon', autoStartUp: false};
   }
 }
 

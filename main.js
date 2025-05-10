@@ -1,18 +1,23 @@
 const { app, BrowserWindow, Tray, Menu, screen} = require('electron');
 const path = require('path');
 
+const loadConfig = require("./config")
+const config = loadConfig()
+
+
 let tray = null
 let win = null
 
 function createWindow() {
     win = new BrowserWindow({
     width: 300,
-    height: 140,
+    height: 150,
     show: false,
     frame: false,
     resizable: false,
     alwaysOnTop: true,
     transparent: false,
+    icon: path.join(__dirname, 'assets/icon.ico'),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -28,7 +33,6 @@ function createWindow() {
 function createTray() {
     const iconPath = path.join(__dirname, "icon.png")
     tray = new Tray(iconPath);
-
     const contextMenu = Menu.buildFromTemplate([
         {
             label: 'Show/Hide',
@@ -61,7 +65,6 @@ function toggleWindow() {
 
   const trayBounds = tray.getBounds();       // Tray icon position
   const windowBounds = win.getBounds();      // Current window size
-  const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y });
 
   // Center window horizontally on tray icon
   const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowBounds.width / 2);
@@ -89,4 +92,10 @@ function toggleWindow() {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  win.hide();
 });
+
+app.setLoginItemSettings({
+  openAtLogin: config.autoStartUp,
+  path: process.execPath
+})
