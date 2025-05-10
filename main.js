@@ -1,7 +1,8 @@
-const { app, BrowserWindow, Tray, Menu, screen} = require('electron');
-const path = require('path');
+const { app, BrowserWindow, Tray, Menu} = require('electron');
+const gotTheLock = app.requestSingleInstanceLock();
 
-const loadConfig = require("./config")
+const path = require('path');
+const { loadConfig } = require('./config');
 const config = loadConfig()
 
 
@@ -16,6 +17,7 @@ function createWindow() {
     frame: false,
     resizable: false,
     alwaysOnTop: true,
+    skipTaskbar: true,
     transparent: false,
     icon: path.join(__dirname, 'assets/icon.ico'),
     webPreferences: {
@@ -27,7 +29,7 @@ function createWindow() {
   win.on('blur', () => {
     if (win && win.isVisible()) win.hide();
   });
-//   win.webContents.openDevTools({ mode: 'detach' }); // debug
+  win.webContents.openDevTools({ mode: 'detach' }); // debug
 }
 
 function createTray() {
@@ -75,7 +77,7 @@ function toggleWindow() {
     y = Math.round(trayBounds.y + trayBounds.height + 4);
   } else {
     // Align bottom of window with top of tray icon (Windows)
-    y = Math.round(trayBounds.y - trayBounds.height - windowBounds.height) + 36;
+    y = Math.round(trayBounds.y - windowBounds.height - 4);
   }
 
   win.setBounds({ x, y, width: windowBounds.width, height: windowBounds.height });
@@ -88,14 +90,31 @@ function toggleWindow() {
   }
 }
 
+if (!gotTheLock){
+  app.quit();
+} else {
+  app.whenReady().then(() => {
+    createWindow();
+    createTray();
+    const wasAutoStarted = app.getLoginItemSettings().wasOpenedAtLogin;
 
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-  win.hide();
-});
+    if (!wasAutoStarted) {
+      win.show(); // only show if launched manually
+    } else {
+      win.hide(); // remain hidden at login
+    }
 
-app.setLoginItemSettings({
-  openAtLogin: config.autoStartUp,
-  path: process.execPath
+    app.setLoginItemSettings({
+    openAtLogin: config.autoStartUp,
+    path: process.execPath
+    });
+  });
+}
+
+app.on('second-instance', (event, argv, workingDirectory)=>{
+  if (win) {
+    win.show();
+    win.focus();
+  }
 })
+

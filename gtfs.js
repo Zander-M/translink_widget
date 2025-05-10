@@ -68,7 +68,15 @@ async function fetchStaticGTFS() {
 }
 
 async function fetchNextBus() {
+  try {
   const res = await fetch(`https://gtfsapi.translink.ca/v3/gtfsrealtime?apikey=${API_KEY}`);
+
+  if (!res.ok){
+    const errorText = await res.text();
+    console.error(`GTFS API error: ${res.status} ${res.statusText}`, errorText);
+    return { is_bus_coming: false};
+  }
+
   const buffer = await res.arrayBuffer();
   const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(buffer));
 
@@ -79,28 +87,37 @@ async function fetchNextBus() {
     const trip = entity.tripUpdate?.trip;
     const updates = entity.tripUpdate?.stopTimeUpdate ?? [];
 
-    if (trip?.routeId !== ROUTE_ID) continue;
+    if (trip?.routeId?.toString() !== ROUTE_ID.toString()) continue;
 
     for (const stop of updates) {
-      if (stop.stopId === STOP_ID && stop.arrival?.time?.low > now) {
-        arrivals.push(stop.arrival.time.low);
+      const timeObj = stop.arrival?.time ?? stop.departure?.time ;
+      const time = timeObj && typeof timeObj.toNumber === 'function' ? timeObj.toNumber() : null;
+      if (stop.stopId.toString() === STOP_ID.toString() && time && time > now) {
+        arrivals.push(time);
       }
     }
   }
+  if (arrivals.length === 0) {
+    console.log("No bus coming.");
+    return {is_bus_coming: false};
+  } else {
+    const next = arrivals.sort((a, b) => a - b).slice(0, 2);
+    const mins = next.map(t => `${Math.round((t - now) / 60)} min`).join(', ');
 
-  if (arrivals.length === 0) return {is_bus_coming: false};
+    const routeLabel = routeNames[ROUTE_ID] || `Route ${ROUTE_ID}`;
+    const stopLabel = stopNames[STOP_ID] || `Stop ${STOP_ID}`;
 
-  const next = arrivals.sort((a, b) => a - b).slice(0, 2);
-  const mins = next.map(t => `${Math.round((t - now) / 60)} min`).join(', ');
-
-  const routeLabel = routeNames[ROUTE_ID] || `Route ${ROUTE_ID}`;
-  const stopLabel = stopNames[STOP_ID] || `Stop ${STOP_ID}`;
-
-  return {
-    is_bus_coming: true,
-    route: routeLabel,
-    stop: stopLabel,
-    minutes: mins
+    return {
+      is_bus_coming: true,
+      route: routeLabel,
+      stop: stopLabel,
+      minutes: mins
+    }
+  }
+  }
+  catch (error) {
+    console.error("fetch next bus error", error);
+    return {is_bus_coming:false}
   }
 }
 

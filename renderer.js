@@ -36,6 +36,7 @@ async function init() {
 
 async function updateDisplay() {
   const info = await fetchNextBus();
+  console.log(info);
   if (info.is_bus_coming){ 
   document.getElementById('bus-info').innerHTML =`
     <div class="route">🚌 ${info.route}</div>
